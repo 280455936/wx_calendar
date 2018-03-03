@@ -3,4 +3,8 @@
 <view class="datepicker-box">
 	<!-- <button type="primary" bindtap="showDatepicker"> 点击唤起日期选择器 </button> -->
 	<template is="datepicker" data="{{...datepicker}}" />	
+	<!-- <button type="primary" bindtap="getSelectedDays"> getSelectedDays </button>
+	<view class="selected">{{selectedDaysValue}}</view>
+	<button type="primary" bindtap="getSelectedDay"> getSelectedDay </button>
+	<view class="selected">{{selectedDayValue}}</view> -->
 </view>

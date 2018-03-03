@@ -84,47 +84,60 @@ const conf = {
 	 * 设置日历面板数据
 	 * @param {number} year 年份
 	 * @param {number} month  月份
+	 * @param {number} [curDate] 应为选中状态的日期
 	 */
 	calculateDays(year, month, curDate) {
 		let days = [];
-		let day;
-		let selectMonth;
-		let selectYear;
+		let date = [];
 		const thisMonthDays = conf.getThisMonthDays(year, month);
-		const selectedDay = this.data.datepicker.selectedDay;
+		const selectedDay = this.data.datepicker.selectedDay && this.data.datepicker.selectedDay.slice();
 		if (selectedDay && selectedDay.length) {
-			day = selectedDay[ 0 ].day;
-			selectMonth = selectedDay[ 0 ].month;
-			selectYear = selectedDay[ 0 ].year;
+			selectedDay.map(item => {
+				if (year === item.year && month === item.month) {
+					date.push(item.day);
+				}
+			});
 		}
 		for (let i = 1; i <= thisMonthDays; i++) {
 			days.push({
 				day: i,
-				choosed: curDate ? (i === curDate) : (year === selectYear && month === selectMonth && i === day),
+				choosed: curDate && curDate instanceof Array ? date.includes(i) : i === curDate,
 				year,
 				month,
 			});
 		}
-		const tmp = {
+		const selectedDays = {
 			'datepicker.days': days,
 		};
-		if (curDate) {
-			tmp[ 'datepicker.selectedDay' ] = [ {
-				day: curDate,
+		if (curDate && curDate instanceof Array) {
+			if (!curDate.length) return;
+			let tmp = [];
+			curDate.map(item => {
+				tmp.push({
+					day: +item,
+					choosed: true,
+					year,
+					month,
+				});
+			});
+			selectedDays[ 'datepicker.selectedDay' ] = tmp;
+		} else if (curDate && !isNaN(curDate)) {
+			selectedDays[ 'datepicker.selectedDay' ] = [ {
+				day: +curDate,
 				choosed: true,
 				year,
 				month,
 			} ];
 		}
-		this.setData(tmp);
+		this.setData(selectedDays);
 	},
 	/**
 	 * 初始化日历选择器
-	 * @param {number} curYear
-	 * @param {number} curMonth
-	 * @param {number} curDate
+	 * @param {number} curYear 年
+	 * @param {number} curMonth 月
+	 * @param {number} curDate 日
 	 */
-	init(curYear = 2018, curMonth = 1, curDate = 1) {
+	init(curYear, curMonth, curDate) {
 		const self = _getCurrentPage();
 		if (!curYear || !curMonth || !curDate) {
 			const date = new Date();
@@ -150,8 +163,22 @@ const conf = {
 	showDatepicker(e) {
 		const value = e.detail.value;
 		if (value && typeof value === 'string') {
-			const tmp = value.split('-');
-			conf.init(+tmp[ 0 ], +tmp[ 1 ], +tmp[ 2 ]);
+			const days = value.split(' ');
+			let year = 0;
+			let month = 0;
+			let tmp = [];
+			if (days && days.length > 1) {
+				const first = days[ 0 ].split('-');
+				year = +first[0];
+				month = +first[1];
+				days.map(item => {
+					const d = item.split('-');
+					if (+d[ 0 ] === year && +d[ 1 ] === month) {
+						tmp.push(d[ 2 ]);
+					}
+				});
+			}
+			conf.init(+year, +month, tmp.length === 1 ? tmp[ 0 ] : tmp);
 		} else {
 			conf.init();
 		}
@@ -180,7 +207,7 @@ const conf = {
 	 * 计算当前日历面板月份的前一月数据
 	 */
 	choosePrevMonth() {
-		const { curYear, curMonth } = this.data.datepicker;
+		const { curYear, curMonth, selectedDay } = this.data.datepicker;
 		let newMonth = curMonth - 1;
 		let newYear = curYear;
 		if (newMonth < 1) {
@@ -188,7 +215,16 @@ const conf = {
 			newMonth = 12;
 		}
 
-		conf.calculateDays.call(this, newYear, newMonth);
+		let choosedDate = [];
+		if (selectedDay && selectedDay.length) {
+			selectedDay.map(item => {
+				if (item.year === newYear && item.month === newMonth) {
+					choosedDate.push(item.day);
+				}
+			});
+		}
+
+		conf.calculateDays.call(this, newYear, newMonth, choosedDate);
 		conf.calculateEmptyGrids.call(this, newYear, newMonth);
 
 		this.setData({
@@ -200,14 +236,22 @@ const conf = {
 	 * 计算当前日历面板月份的后一月数据
 	 */
 	chooseNextMonth() {
-		const { curYear, curMonth } = this.data.datepicker;
+		const { curYear, curMonth, selectedDay } = this.data.datepicker;
 		let newMonth = curMonth + 1;
 		let newYear = curYear;
 		if (newMonth > 12) {
 			newYear = curYear + 1;
 			newMonth = 1;
 		}
-		conf.calculateDays.call(this, newYear, newMonth);
+		let choosedDate = [];
+		if (selectedDay && selectedDay.length) {
+			selectedDay.map(item => {
+				if (item.year === newYear && item.month === newMonth) {
+					choosedDate.push(item.day);
+				}
+			});
+		}
+		conf.calculateDays.call(this, newYear, newMonth, choosedDate);
 		conf.calculateEmptyGrids.call(this, newYear, newMonth);
 
 		this.setData({
@@ -217,7 +261,7 @@ const conf = {
 	},
 	/**
 	 * 切换月份
-	 * @param {!object} e 事件对象
+	 * @param {object} e 事件对象
 	 */
 	handleCalendar(e) {
 		const handle = e.currentTarget.dataset.handle;
@@ -229,18 +273,28 @@ const conf = {
 	},
 	/**
 	 * 选择具体日期
-	 * @param {!object} e  事件对象
+	 * @param {object} e  事件对象
 	 */
 	tapDayItem(e) {
 		const idx = e.currentTarget.dataset.idx;
-		const { curYear, curMonth, days } = this.data.datepicker;
+		let { curYear, curMonth, days, selectedDay = [] } = this.data.datepicker;
 		const key = `datepicker.days[${idx}].choosed`;
-		const selectedValue = `${curYear}-${curMonth}-${days[ idx ].day}`;
-		if (this.config.type === 'timearea') {
+		if (this.config.type === 'multiSelect') {
+			if (!days[ idx ].choosed) selectedDay.push(days[ idx ]);
+			if (days[ idx ].choosed) selectedDay = selectedDay.filter(item => item.day !== days[ idx ].day);
+			selectedDay.sort((a, b) => new Date(a.year, a.month + 1, a.day).getTime() - new Date(b.year, b.month + 1, b.day).getTime());
+			let selectedValue = '';
+			selectedDay.map(item => {
+				const separator = this.config.separator;
+				selectedValue += `${item.year}${separator}${item.month}${separator}${item.day} `;
+			});
 			this.setData({
 				[ key ]: !days[ idx ].choosed,
+				'datepicker.selectedDay': selectedDay,
+				'datepicker.selectedValue': selectedValue.replace(/\s$/, ''),
 			});
 		} else if (this.config.type === 'normal' && !days[ idx ].choosed) {
+			const selectedValue = `${curYear}-${curMonth}-${days[ idx ].day}`;
 			const prev = days.filter(item => item.choosed)[ 0 ];
 			const prevKey = prev && `datepicker.days[${prev.day - 1}].choosed`;
 			this.setData({
@@ -288,6 +342,7 @@ function _getCurrentPage() {
 export default (config = {}) => {
 	const self = _getCurrentPage();
 	if (!config.type) config.type = 'normal';
+	if (!config.separator) config.separator = '-';
 	self.config = config;
 	self.setData({
 		datepicker: {

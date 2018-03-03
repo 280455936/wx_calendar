@@ -70,7 +70,7 @@ Page(conf);
 
 2. 日期选择器初始化
 ```js
-// example.js
+// example.js, 提供getSelectedDay(获取当前选择的日期)方法
 import initDatepicker from '../../template/datepicker/index';
 const conf = {
 	onShow: function() {

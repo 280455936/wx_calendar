@@ -61,7 +61,7 @@ const conf = {
 	},
 	/**
 	 * 切换月份
-	 * @param {!object} e 事件对象
+	 * @param {object} e 事件对象
 	 */
 	handleCalendar(e) {
 		const handle = e.currentTarget.dataset.handle;
@@ -101,7 +101,7 @@ const conf = {
 	},
 	/**
 	 * 选择具体日期
-	 * @param {!object} e  事件对象
+	 * @param {object} e  事件对象
 	 */
 	tapDayItem(e) {
 		const idx = e.currentTarget.dataset.idx;

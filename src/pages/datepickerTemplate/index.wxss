@@ -5,5 +5,12 @@
 }
 
 button {
-	margin-top: 100rpx;
+	margin-top: 20rpx;
+}
+
+.selected {
+	width: 100%;
+	min-height: 100rpx;
+	border: 1rpx salmon solid;
+	margin-top: 50rpx;
 }
